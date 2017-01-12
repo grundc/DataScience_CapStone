@@ -1,4 +1,4 @@
-# setwd("//RM2MS000587/U_grundc$/My Documents/GitHub/DataScience_CapStone")
+# setwd("U://My Documents/GitHub/DataScience_CapStone")
 
 
 # --------------------------------------------------------------------------
@@ -46,13 +46,15 @@
 # isOpen(con, rw = "")
 # isIncomplete(con)
 # ---------------------------------------------------------------------------------------
-rbinom(1,1, prob=0.1)
 
-con <- file("data/final/en_US/en_US.twitter.txt", "r") 
+
+
+con <- file("data/en_US.twitter.txt", "r") 
 rows <- character()
 
+count <- 0
 
-for (row in readLines())
+for (row in readLines(con, 10000) )
 {
   #row <- readLines(con, 1) 
   if (rbinom(1,1, prob=0.1) == 1)
@@ -60,11 +62,18 @@ for (row in readLines())
     rows <- c(rows,row)
   }
 
+  # count <- count + 1
+  # if (count >= 100)
+  #   {
+  #     break()
+  #   }
+    
+  
   # readLines(con, 5) 
 }
 
 close(con)
-write(rows,"data/sample_twitter.txt")
+write(rows,"data/sample_en_US_twitter.txt")
 
 
 
