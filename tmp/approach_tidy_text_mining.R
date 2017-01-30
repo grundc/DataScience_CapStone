@@ -63,7 +63,7 @@ words %>% inner_join(positive_words) %>% count(word, sort=TRUE)
 
 
 # -----------------------------
-#
+# Classifiying a sentence by score
 # -----------------------------
 
 scored_words <- get_sentiments("afinn")
@@ -71,6 +71,21 @@ words %>%
       inner_join(scored_words) %>%
       group_by(line) %>%
       summarize(sentiment_level = sum(score))
+
+
+
+# -----------------------------
+# WordClowd
+# -----------------------------
+
+library(tidytext)
+library(dplyr)
+library(wordcloud)
+
+#words <- words %>% anti_join(stop_words)  # stop_words comes from tidytext
+
+words %>% count(word, sort=TRUE) %>% with(wordcloud(word,n,max.words=100))
+
 
 
 
