@@ -87,6 +87,32 @@ library(wordcloud)
 words %>% count(word, sort=TRUE) %>% with(wordcloud(word,n,max.words=100))
 
 
+# ------------------------------------
+#  Analysing word relationship
+# ------------------------------------
+
+library(tidytext)
+library(dplyr)
+library(tidyr)
+
+words <- text_df %>% unnest_tokens(bigram, text, token="ngrams", n=2)
+head(words)
+
+bigrams <- words %>% count(bigram, sort=T)
+
+# Separate into 2 words and filter out the combinations which don't contain stop_words
+separated_gigrams <- bigrams %>% separate(bigram, c("word1", "word2"), sep=" ")
+head(separated_gigrams)
+
+bigrams_filtered <- separated_gigrams %>%
+                        filter(!word1 %in% stop_words$word) %>%
+                        filter(!word2 %in% stop_words$word)
+head(bigrams_filtered)
+
+bigrams_united <- bigrams_filtered %>% unite(bigram, word1, word2, sep = " ")
+head(bigrams_united)
+
+
 
 
 

@@ -63,18 +63,53 @@ for (row in readLines(con, 10000) )
     rows <- c(rows,row)
   }
 
-  # count <- count + 1
-  # if (count >= 100)
-  #   {
-  #     break()
-  #   }
-    
-  
-  # readLines(con, 5) 
 }
 
 close(con)
 write(rows,"data/sample_en_US_twitter.txt")
+
+
+
+# ------------------------------------------
+# Count amount rows
+
+con <- file("data/en_US.twitter.txt", "r") 
+rows <- character()
+
+count <- 0
+
+for (row in readLines(con) )
+{
+  count <- count + 1
+  
+}
+
+close(con)
+
+count
+# ------------------------------------------
+
+
+# ------------------------------------------
+# Count amount rows
+
+con <- file("data/en_US.twitter.txt", "r") 
+rows <- character()
+
+count <- 0
+
+for (row in readLines(con) )
+{
+  count <- count + 1
+  
+}
+
+close(con)
+
+count
+# ------------------------------------------
+
+
 
 
 
