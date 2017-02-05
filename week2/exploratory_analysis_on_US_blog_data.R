@@ -40,10 +40,50 @@ blog_words %>% anti_join(stop_words) %>% count(word, sort=TRUE) %>% top_n(20) %>
 # STEP 3 Analyse term frequency (tf) and inverse term frequency (itf)
 
 
-perBlogWords <- blog_file_df %>% unnest_tokens(word, text, token="words") %>% # tokenization
-                      count(line, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
+# ---------- TESTING , NOT FULL DATASET -------------------------------
+perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% filter(line %in% c(1,4, 18, 13)) %>% 
+                      unnest_tokens(word, text, token="words") %>%          # tokenization
+                      count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
 
-total_blog_words <- perBlogWords %>% group_by(line) %>% summarize(total=sum(n))                # counting total words per blog entry
+total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
+
+
+summary_words <- left_join(perBlogWords, total_blog_words)
+
+
+rm(perBlogWords)
+rm(total_blog_words)
+
+# head(summary_words)
+
+
+summary_words <- summary_words %>% arrange(desc(n)) %>% group_by(blog) %>% mutate(rank=row_number(), term_freq = n/total)
+
+# head(summary_words)
+
+# Zipf's law
+freq_by_rank %>% 
+  ggplot(aes(rank, term_freq, color=as.factor(blog))) +
+  geom_line(size=1.2, alpha=0.8) +
+  scale_x_log10() +
+  scale_y_log10()
+
+
+summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
+
+# head(summary_words)
+
+# summary_words %>% filter(blog == "blog13") %>% arrange(blog, rank)
+
+# ----------- TESTING END ---------------------------------------------
+
+# -----------START FOR THE FULL DATASET -----------------------------
+
+perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
+  unnest_tokens(word, text, token="words") %>%          # tokenization
+  count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
+
+total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
 
 
 summary_words <- left_join(perBlogWords, total_blog_words)
@@ -51,24 +91,19 @@ summary_words <- left_join(perBlogWords, total_blog_words)
 rm(perBlogWords)
 rm(total_blog_words)
 
-head(summary_words)
+# head(summary_words)
 
 
-freq_by_rank <- summary_words %>% order_by(n) %>% group_by(line) %>% mutate(rank=row_number(), term_freq = n/total)
+summary_words <- summary_words %>% arrange(desc(n)) %>% group_by(blog) %>% mutate(rank=row_number(), term_freq = n/total)
 
-head(freq_by_rank)
+summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
 
-# Zipf's law
-freq_by_rank %>% filter(line %in% c(517366,483415)) %>%
-  ggplot(aes(rank, term_freq, color=as.factor(line))) +
-  geom_line(size=1.2, alpha=0.8) +
-  scale_x_log10() +
-  scale_y_log10()
+# head(summary_words)
+
+# ----------END --------------------------------------------------
 
 
-summary_words <- summary_words %>% bind_tf_idf(word,line, n)
 
-head(summary_words)
-summary_words %>% arrange(line,n) %>% mutate(term_freq=n/total) %>% top_n(20)
+
 
 
