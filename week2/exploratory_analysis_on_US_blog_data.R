@@ -10,6 +10,8 @@
 library(tidytext)
 library(dplyr)
 library(ggplot2)
+library(tidyr)
+library(igraph)
 
 
 # STEP 1: Setup data
@@ -103,7 +105,39 @@ summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
 # ----------END --------------------------------------------------
 
 
+# STEP 3: Analyse n-grams
+
+blogBigrams <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
+      unnest_tokens(bigram, text, token="ngrams" , n=2)
+
+rm(blog_file_df)
+
+# blogBigrams %>% count(bigram, sort=TRUE)
+
+blogBigrams <- blogBigrams %>% separate(bigram, c("word1", "word2"), sep=" ") %>%  # separate into words
+                                    filter(!word1 %in% stop_words$word) %>%                 # filter out where any common stop word
+                                    filter(!word2 %in% stop_words$word) %>%
+                                    unite(bigram, word1, word2, sep=" ") %>%                # recombine words
+                                    count(bigram, sort=TRUE)
+
+
+blogBigrams <- blogBigrams %>% filter(n > 4)
+                  
+# > dim(blogBigrams)
+# [1] 113343      2
 
 
 
+
+blogBigramgraph <- blogBigrams %>% filter(n > 500) %>% 
+                        separate(bigram, c("word1", "word2"), sep=" ") %>% 
+                        graph_from_data_frame()                         # Genrates an igraph
+
+
+# https://briatte.github.io/ggnet/
+library(GGally)
+
+
+# For conversion also intergraph library is needed
+ggnet2(blogBigramgraph, node.size = 3, label=name)
 
