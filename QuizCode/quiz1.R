@@ -35,5 +35,7 @@ complete_file <- readLines(con)
 file_df <- data.frame(line = 1:length(complete_file), text = complete_file)
 file_df <- file_df %>% mutate(textsize = stri_length(text))
 max(file_df$textsize)
+rm(complete_file)
+rm(file_df)
 
 

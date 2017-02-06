@@ -1,0 +1,102 @@
+---
+title: "Data Science Capstone Project"
+author: "by Christoph"
+date: "6 Februar 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(stringi)
+```
+
+## The data to be used
+
+
+### en_US.blogs.txt
+```{r}
+con <- file("../data/en_US.blogs.txt", "r") 
+complete_file <- readLines(con)
+file_df <- data.frame(line = 1:length(complete_file), text = complete_file)
+file_df <- file_df %>% mutate(textsize = stri_length(text))
+```
+
+File size:
+```{r}
+print(object.size(complete_file), units='auto')
+```
+
+Maximum text size:
+```{r}
+max(file_df$textsize)
+```
+
+Amount entries:
+```{r}
+length(complete_file)
+```
+
+```{r}
+rm(complete_file)
+rm(file_df)
+```
+
+### en_US.twitter.txt
+```{r echo=FALSE}
+con <- file("../data/en_US.twitter.txt", "r") 
+complete_file <- readLines(con)
+file_df <- data.frame(line = 1:length(complete_file), text = complete_file)
+file_df <- file_df %>% mutate(textsize = stri_length(text))
+```
+
+File size:
+```{r}
+print(object.size(complete_file), units='auto')
+```
+
+Maximum text size:
+```{r}
+max(file_df$textsize)
+```
+
+Amount entries:
+```{r}
+length(complete_file)
+```
+
+```{r}
+rm(complete_file)
+rm(file_df)
+```
+
+### en_US.news.txt
+```{r echo=FALSE}
+con <- file("../data/en_US.news.txt", "r") 
+complete_file <- readLines(con)
+file_df <- data.frame(line = 1:length(complete_file), text = complete_file)
+file_df <- file_df %>% mutate(textsize = stri_length(text))
+```
+
+File size:
+```{r}
+print(object.size(complete_file), units='auto')
+```
+
+Maximum text size:
+```{r}
+max(file_df$textsize)
+```
+
+Amount entries:
+```{r}
+length(complete_file)
+```
+
+```{r}
+rm(complete_file)
+rm(file_df)
+```
+
+## Exploring the US blog file
+

@@ -129,15 +129,31 @@ blogBigrams <- blogBigrams %>% filter(n > 4)
 
 
 
+blogBigramgraph <- blogBigrams %>% filter(n > 50) %>% 
+                        separate(bigram, c("word1", "word2"), sep=" ") %>% 
+                        filter(word1 == "love" | word2 == "love") %>%
+                        graph_from_data_frame()                         # Genrates an igraph
+
 blogBigramgraph <- blogBigrams %>% filter(n > 500) %>% 
                         separate(bigram, c("word1", "word2"), sep=" ") %>% 
                         graph_from_data_frame()                         # Genrates an igraph
+
+
+# Visualizing with basic plotting system
+plot(blogBigramgraph, vertex.size=4, edge.arrow.size=0.15, edge.arrow.width=2, edge.color="black")
+
 
 
 # https://briatte.github.io/ggnet/
 library(GGally)
 
 
-# For conversion also intergraph library is needed
-ggnet2(blogBigramgraph, node.size = 3, label=name)
+# For conversion netween igraph and network object also "intergraph" library is needed
+# install.packages("intergraph")
+library(intergraph)
+
+
+# network.vertex.names(net)
+net <- asNetwork(blogBigramgraph)
+ggnet2(net, size = 8, color="yellow", label=TRUE, label.size = 5, label.color="black" , arrow.size = 6, arrow.gap = 0.01, edge.label = "n", edge.label.color = "blue")
 
