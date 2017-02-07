@@ -85,6 +85,8 @@ perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>%
   unnest_tokens(word, text, token="words") %>%          # tokenization
   count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
 
+rm(blog_file_df)
+
 total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
 
 
