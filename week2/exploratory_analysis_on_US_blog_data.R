@@ -16,13 +16,20 @@ library(igraph)
 
 # STEP 1: Setup data
 
-con <- file("data/en_US.blogs.txt", "r") 
+set.seed(1001)
+con <- file("data/en_US.blogs.txt", "r")
+
 blog_file <- readLines(con, encoding="UTF-8")
+# 193891
 close(con)
 
-blog_file_df <- data.frame(line = 1:length(blog_file), text = blog_file, stringsAsFactors = F)
+included <- rbinom(length(blog_file),1, prob=0.5)
+
+blog_file_df <- data.frame(line = 1:length(blog_file), text = blog_file, stringsAsFactors = F, Included = included)
+blog_file_df <- blog_file_df %>% filter(Included == 1)
 
 rm(blog_file)
+
 
 # object.size(blog_file_df) / 1000
 
@@ -35,6 +42,12 @@ blog_words %>% count(word, sort=TRUE) %>% top_n(10)
 
 blog_words %>% anti_join(stop_words) %>% count(word, sort=TRUE) %>% top_n(20) %>%
   ggplot(aes(word,n)) +
+  geom_bar(stat="identity") +
+  xlab(NULL) + coord_flip()
+
+
+blog_words %>% anti_join(stop_words) %>% count(word, sort=TRUE) %>% top_n(20) %>%
+  ggplot(order_by(word, ~n), aes(word,n)) +
   geom_bar(stat="identity") +
   xlab(NULL) + coord_flip()
 
@@ -85,7 +98,7 @@ perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>%
   unnest_tokens(word, text, token="words") %>%          # tokenization
   count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
 
-rm(blog_file_df)
+#rm(blog_file_df)
 
 total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
 
@@ -100,9 +113,14 @@ rm(total_blog_words)
 
 summary_words <- summary_words %>% arrange(desc(n)) %>% group_by(blog) %>% mutate(rank=row_number(), term_freq = n/total)
 
+summary_words <- summary_words %>% filter(term_freq != 1)  # Filtering out  blog entries where the text consists of only one word, total = n.
+
 summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
 
-# head(summary_words)
+summary_words %>% arrange(desc(tf_idf))
+
+
+#head(summary_words)
 
 # ----------END --------------------------------------------------
 
