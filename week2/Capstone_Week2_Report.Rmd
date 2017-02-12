@@ -6,20 +6,22 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, messages=FALSE, warning = FALSE)
 library(dplyr)
 library(stringi)
 library(ggplot2)
 library(tidytext)
 library(tidyr)
 library(igraph)
+library(intergraph)
+library(GGally)
 ```
 
 ## The data to be used
 
 
 ### The source files
-```{r messages=FALSE, warning = FALSE}
+```{r }
 filenames <- c("en_US.news.txt","en_US.twitter.txt","en_US.blogs.txt")
 filelength <- integer()
 filesize <- integer()
@@ -59,15 +61,30 @@ fileoverview
 
 ## Exploring the US blog file
 
+
+
 ### 1.) Simple tokenization
 
+```{r }
+fileBlogSample <- "blogfiledf.rda"
+set.seed(1001)
+if (!file.exists(fileBlogSample))
+{
+      con <- file("../data/en_US.blogs.txt", "r") 
+      blog_file <- readLines(con, encoding="UTF-8")
+      close(con)
+      Integrated <- rbinom(length(blog_file),1, prob=0.1)
+      blog_file_df <- data.frame(line = 1:length(blog_file), text = blog_file, stringsAsFactors = F, Integrated=Integrated)
+      blog_file_df <- blog_file_df %>% filter(Integrated==1)
+      rm(blog_file)
+      save(blog_file_df, file=fileBlogSample)
+      rm(blog_file_df)
+}
+load(fileBlogSample)
+```
+
 This figure shows the top most used words in the US-Blog dataset. So called stop-words were excluded to get a clearer picture on the words that give content to the blogs.
-```{r messages=FALSE, warning = FALSE}
-con <- file("../data/en_US.blogs.txt", "r") 
-blog_file <- readLines(con, encoding="UTF-8")
-close(con)
-blog_file_df <- data.frame(line = 1:length(blog_file), text = blog_file, stringsAsFactors = F)
-rm(blog_file)
+```{r }
 
 blog_words <- blog_file_df %>% unnest_tokens(word, text, token="words")
 
@@ -75,4 +92,60 @@ blog_words %>% anti_join(stop_words) %>% count(word, sort=TRUE) %>% top_n(20) %>
   ggplot(aes(word,n)) +
   geom_bar(stat="identity") +
   xlab(NULL) + coord_flip()
+```
+
+
+### 2.) "Term frequency" and "Inverse document frequency"
+
+```{r }
+perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
+  unnest_tokens(word, text, token="words") %>%          # tokenization
+  count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
+
+
+total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
+
+summary_words <- left_join(perBlogWords, total_blog_words)
+
+rm(perBlogWords)
+rm(total_blog_words)
+
+summary_words <- summary_words %>% arrange(desc(n)) %>% group_by(blog) %>% mutate(rank=row_number(), term_freq = n/total)
+
+summary_words <- summary_words %>% filter(term_freq != 1)  
+
+summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
+
+summary_words %>% arrange(desc(tf_idf)) %>% select(blog,word, n, total,tf,idf,tf_idf) %>% top_n(20)
+rm(summary_words)
+```
+
+
+### 3.) Analyzing n-grams
+
+```{r }
+
+blogBigrams <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
+      unnest_tokens(bigram, text, token="ngrams" , n=2)
+
+
+blogBigrams <- blogBigrams %>% separate(bigram, c("word1", "word2"), sep=" ") %>%  # separate into words
+                                    filter(!word1 %in% stop_words$word) %>%                 # filter out where any common stop word
+                                    filter(!word2 %in% stop_words$word) %>%
+                                    unite(bigram, word1, word2, sep=" ") %>%                # recombine words
+                                    count(bigram, sort=TRUE)
+
+blogBigrams <- blogBigrams %>% filter(n > 4)
+blogBigrams %>% top_n(20)
+
+```
+
+
+
+```{r }
+blogBigramgraph <- blogBigrams %>% filter(n > 500) %>% 
+                        separate(bigram, c("word1", "word2"), sep=" ") %>% 
+                        graph_from_data_frame()                         # Genrates an igraph
+plot(blogBigramgraph, vertex.size=4, edge.arrow.size=0.15, edge.arrow.width=2, edge.color="black")
+
 ```

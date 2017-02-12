@@ -141,7 +141,7 @@ blogBigrams <- blogBigrams %>% separate(bigram, c("word1", "word2"), sep=" ") %>
                                     count(bigram, sort=TRUE)
 
 
-blogBigrams <- blogBigrams %>% filter(n > 4)
+blogBigrams <- blogBigrams %>% filter(n > 4) 
                   
 # > dim(blogBigrams)
 # [1] 113343      2
