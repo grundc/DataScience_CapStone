@@ -21,6 +21,9 @@ library(GGally)
 
 
 ### The source files
+
+The input data for the later text prediction project consists of 3 files. One from Twitter, one from a blog feed and on from a news feed.
+Some basic properties for these files are listed below.
 ```{r }
 filenames <- c("en_US.news.txt","en_US.twitter.txt","en_US.blogs.txt")
 filelength <- integer()
@@ -34,7 +37,7 @@ if (!file.exists(saveFile))
       for(filename in filenames)
       {
             con <- file(paste("../data/",filename, sep=""), "r") 
-            complete_file <- readLines(con)
+            complete_file <- readLines(con, encoding="UTF-8")
             
             amount_rows <- length(complete_file)
             filelength <- c(filelength,amount_rows )
@@ -46,7 +49,7 @@ if (!file.exists(saveFile))
       }
       
       fileoverview <- data.frame(filenames, filesize, filelength, maxentry)
-      colnames(fileoverview)<- c("FILE","SIZE/MB", "LENGTH", "MAXTEXT")
+      colnames(fileoverview)<- c("FILE","OBJECT SIZE/MB", "ROWS", "MAX TEXT SIZE")
       
       
       save(fileoverview, file = saveFile) 
@@ -58,94 +61,133 @@ if (!file.exists(saveFile))
 load(saveFile)
 fileoverview
 ```
+*FILE:* source file name, *OBJECT SIZE:* size in MB when loaded into memory, *ROWS:* amount entries, *MAX TEXT:* The entry with the most characters
 
-## Exploring the US blog file
+## Exploring the files in detail
 
+As the files are quite big and some processing requires a lot of system resources, the following analysis was done against a sample set of these 3 files, randomly gernerated. Sample size per file = 10% of the orginal file.
+```{r }
+strFilename <- "fileSampleDF.rda"
+set.seed(1001)
+all_file_df <- data.frame()
+  
+if (!file.exists(strFilename))
+  {
+    
+    for(filename in filenames)
+    {
+      con <- file(paste("../data/",filename, sep=""), "r") 
+      complete_file <- readLines(con, encoding="UTF-8")
+      Integrated <- rbinom(length(complete_file),1, prob=0.1)
+      file_df <- data.frame(line = 1:length(complete_file), text = complete_file, stringsAsFactors = F, Integrated=Integrated, file = filename)
+      file_df <- file_df %>% filter(Integrated==1)
+      all_file_df <- rbind(all_file_df,file_df)
+      rm(complete_file)
+      close(con)
+    }
+    
+   
+    save(all_file_df, file=strFilename)
+    rm(file_df)
+    rm(all_file_df)
+  }
+  
 
+load(strFilename)
+```
 
 ### 1.) Simple tokenization
 
+First we simply cut the texts into single words, also called tokenization. So we can do some basic statistical operations like counting words. Addionally stop words (e.g. "the") were excluded, as these don't give meaning to a text and  would appear at the top of any ranking.
+
+The histogram shows the 10 most used words per each of the 3 files. 
 ```{r }
-fileBlogSample <- "blogfiledf.rda"
-set.seed(1001)
-if (!file.exists(fileBlogSample))
+strFilename <- "all_files_words.rda"
+if (!file.exists(strFilename))
 {
-      con <- file("../data/en_US.blogs.txt", "r") 
-      blog_file <- readLines(con, encoding="UTF-8")
-      close(con)
-      Integrated <- rbinom(length(blog_file),1, prob=0.1)
-      blog_file_df <- data.frame(line = 1:length(blog_file), text = blog_file, stringsAsFactors = F, Integrated=Integrated)
-      blog_file_df <- blog_file_df %>% filter(Integrated==1)
-      rm(blog_file)
-      save(blog_file_df, file=fileBlogSample)
-      rm(blog_file_df)
+  all_files_words <- all_file_df %>% unnest_tokens(word, text, token="words") %>% anti_join(stop_words) %>% count(file,word)
+  save(all_files_words, file=strFilename)
 }
-load(fileBlogSample)
-```
 
-This figure shows the top most used words in the US-Blog dataset. So called stop-words were excluded to get a clearer picture on the words that give content to the blogs.
-```{r }
+load(strFilename)
 
-blog_words <- blog_file_df %>% unnest_tokens(word, text, token="words")
+# Plotting
+all_files_words  %>% group_by(file) %>% top_n(n=10, wt=n) %>%
+  ggplot(aes(word,n, group=factor(file))) +
+  geom_bar(stat="identity") + 
+  xlab(NULL) + coord_flip() + facet_grid(. ~ file) 
 
-blog_words %>% anti_join(stop_words) %>% count(word, sort=TRUE) %>% top_n(20) %>%
-  ggplot(aes(word,n)) +
-  geom_bar(stat="identity") +
-  xlab(NULL) + coord_flip()
-```
-
-
-### 2.) "Term frequency" and "Inverse document frequency"
-
-```{r }
-perBlogWords <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
-  unnest_tokens(word, text, token="words") %>%          # tokenization
-  count(blog, word, sort=TRUE) %>% ungroup()            # counting words per blog entry
-
-
-total_blog_words <- perBlogWords %>% group_by(blog) %>% summarize(total=sum(n))                # counting total words per blog entry
-
-summary_words <- left_join(perBlogWords, total_blog_words)
-
-rm(perBlogWords)
-rm(total_blog_words)
-
-summary_words <- summary_words %>% arrange(desc(n)) %>% group_by(blog) %>% mutate(rank=row_number(), term_freq = n/total)
-
-summary_words <- summary_words %>% filter(term_freq != 1)  
-
-summary_words <- summary_words %>% bind_tf_idf(word,blog, n)
-
-summary_words %>% arrange(desc(tf_idf)) %>% select(blog,word, n, total,tf,idf,tf_idf) %>% top_n(20)
-rm(summary_words)
+rm(all_files_words)
 ```
 
 
-### 3.) Analyzing n-grams
+### 2.) Analyzing n-grams
+
+N-grams are combination of words. The next analysis looks at 2-grams, which means basically 2 consecutive words. This is already a good step in the direction of prediction, as it will give us a hint, which could be a reasonable next word following a given word.
+As with simple word tokenization we have to exclude word combinations with stop words.
+
+The following grafic shows the top 10 most used 2-grams per each of our 3 files:
 
 ```{r }
 
-blogBigrams <- blog_file_df %>% mutate(blog = paste("blog",line, sep="")) %>% 
-      unnest_tokens(bigram, text, token="ngrams" , n=2)
+strFilename <- "all_files_bigrams.rda"
+if (!file.exists(strFilename))
+{
+  all_files_Bigrams <- all_file_df %>% unnest_tokens(bigram, text, token="ngrams" , n=2)
 
-
-blogBigrams <- blogBigrams %>% separate(bigram, c("word1", "word2"), sep=" ") %>%  # separate into words
+  all_files_Bigrams <- all_files_Bigrams %>% separate(bigram, c("word1", "word2"), sep=" ") %>%  # separate into words
                                     filter(!word1 %in% stop_words$word) %>%                 # filter out where any common stop word
                                     filter(!word2 %in% stop_words$word) %>%
-                                    unite(bigram, word1, word2, sep=" ") %>%                # recombine words
-                                    count(bigram, sort=TRUE)
+                                    unite(bigram, word1, word2, sep=" ")
+                          
+  save(all_files_Bigrams, file=strFilename)
+}
 
-blogBigrams <- blogBigrams %>% filter(n > 4)
-blogBigrams %>% top_n(20)
+load(strFilename)
+
+all_files_Bigrams %>% count(file,bigram) %>% group_by(file) %>% top_n(n=10, wt=n) %>%
+  ggplot(aes(bigram,n, group=factor(file))) +
+  geom_bar(stat="identity") + 
+  xlab(NULL) + coord_flip() + facet_grid(. ~ file) 
+
+#rm(all_files_Bigrams)
 
 ```
 
+An n-gram analysis can also be visualized as a network, which shows graphically, which word follows another word. In fact this is the visualization of a "Markov chain"." Only combinations with 300 repetitions were considered, otherwise it would look like a big mess:
+
+```{r }
+
+Bigramgraph <- all_files_Bigrams %>% count(bigram) %>% filter(n > 300) %>%
+                        separate(bigram, c("word1", "word2"), sep=" ") %>%
+                        graph_from_data_frame()                         # Genrates an igraph
+plot(Bigramgraph)
+# plot(blogBigramgraph, vertex.size=4, edge.arrow.size=0.15, edge.arrow.width=2, edge.color="black")
+rm(all_files_Bigrams)
+```
+
+### 3.) "Term frequency" and "Inverse document frequency"
+
+Term frequency gives an impression on word importance in relation to the amount of total words in a text. Additionally "inverse document frequency (idf)" is a technic to up-weight words that appear less frequent over the texts:
+```{r }
+# filenames <- c("en_US.news.txt","en_US.twitter.txt","en_US.blogs.txt")
+PerEntryWords <- all_file_df %>% mutate(entry = paste(file,line, sep="_")) %>%
+  unnest_tokens(word, text, token="words") %>%          
+  count(entry, word) %>% ungroup()            
+
+PerEntryWords %>% filter(grepl("en_US.news.txt", entry)) %>% bind_tf_idf(word,entry, n) %>% 
+filter(tf != 1) %>% arrange(desc(tf_idf)) %>% select(entry,word, n, tf,idf,tf_idf) %>% top_n(10)
+
+
+```
+
+```{r }
+PerEntryWords %>% filter(grepl("en_US.twitter.txt", entry)) %>% bind_tf_idf(word,entry, n) %>% 
+filter(tf != 1) %>% arrange(desc(tf_idf)) %>% select(entry,word, n, tf,idf,tf_idf) %>% top_n(10)
+```
 
 
 ```{r }
-blogBigramgraph <- blogBigrams %>% filter(n > 500) %>% 
-                        separate(bigram, c("word1", "word2"), sep=" ") %>% 
-                        graph_from_data_frame()                         # Genrates an igraph
-plot(blogBigramgraph, vertex.size=4, edge.arrow.size=0.15, edge.arrow.width=2, edge.color="black")
-
+PerEntryWords %>% filter(grepl("en_US.blogs.txt", entry)) %>% bind_tf_idf(word,entry, n) %>% 
+filter(tf != 1) %>% arrange(desc(tf_idf)) %>% select(entry,word, n, tf,idf,tf_idf) %>% top_n(10)
 ```
