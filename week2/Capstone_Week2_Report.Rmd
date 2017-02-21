@@ -1,7 +1,7 @@
 ---
-title: "Data Science Capstone Project"
+title: "Data Science Capstone Project Week2 Exporation"
 author: "by Christoph"
-date: "6 Februar 2017"
+date: "18 Februar 2017"
 output: html_document
 ---
 
@@ -16,11 +16,13 @@ library(igraph)
 library(intergraph)
 library(GGally)
 ```
+## Introduction
 
-## The data to be used
+The following document gives a brief exploratory analysis about the source files provided to train a model for word prediction.
+The later solution, which will use the "Markov Chain" approach to predict words, given another word.
 
 
-### The source files
+## The source files
 
 The input data for the later text prediction project consists of 3 files. One from Twitter, one from a blog feed and on from a news feed.
 Some basic properties for these files are listed below.
@@ -61,7 +63,12 @@ if (!file.exists(saveFile))
 load(saveFile)
 fileoverview
 ```
-*FILE:* source file name, *OBJECT SIZE:* size in MB when loaded into memory, *ROWS:* amount entries, *MAX TEXT:* The entry with the most characters
+  
+**FILES:**        source file name  
+**OBJECT SIZE:**  size in MB when loaded into memory  
+**ROWS:**         amount entries  
+**MAX TEXT:**     The entry with the most characters   
+
 
 ## Exploring the files in detail
 
@@ -95,6 +102,8 @@ if (!file.exists(strFilename))
 
 load(strFilename)
 ```
+
+**FINDING:** As we can see, there shortcuts like "lol" (laugh -out-laut) or "rt" in the ranking. These are not really word and not suprinsingly we can fin them in the twitter feed. We have to find a way to deal with them.  
 
 ### 1.) Simple tokenization
 
@@ -154,6 +163,8 @@ all_files_Bigrams %>% count(file,bigram) %>% group_by(file) %>% top_n(n=10, wt=n
 
 ```
 
+**FINDING:** Also here we see word repetitions like "rt rt" high in the ranking. Also we can see e.g. for "mother's day" and "mothers day", that even if they mean the same, they are conisdered as different combinations because of a different (wrong) writing.
+
 An n-gram analysis can also be visualized as a network, which shows graphically, which word follows another word. In fact this is the visualization of a "Markov chain"." Only combinations with 300 repetitions were considered, otherwise it would look like a big mess:
 
 ```{r }
@@ -191,3 +202,9 @@ filter(tf != 1) %>% arrange(desc(tf_idf)) %>% select(entry,word, n, tf,idf,tf_id
 PerEntryWords %>% filter(grepl("en_US.blogs.txt", entry)) %>% bind_tf_idf(word,entry, n) %>% 
 filter(tf != 1) %>% arrange(desc(tf_idf)) %>% select(entry,word, n, tf,idf,tf_idf) %>% top_n(10)
 ```
+
+Even if this method might not help use that much in terms of predictions, we see a lot of words, which are not really words or have not really a meaning, but haevily used in today's chats to express emotiones, opinions etc. 
+
+## Summary
+
+From this first exploration it is obvious, that just removing so called "stop words" and running an n-gram tokenization to create a precition model with a "Markov Chain" is not sufficient. We have to validate words somehow to ensure we deal with real words and not fantacy words. Also different writings of the same phrase will be a challenge. Also we could see that after a number very often we have time measurement like minutes e.g. May be we should conisder a rule, that if a number is typed by a user, we offer typical tie measurements like "minutes", "month", "year"....
