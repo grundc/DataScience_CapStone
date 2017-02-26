@@ -27,7 +27,7 @@ FourGramsDF <- FourGramsCount %>% separate(Fourgram, c("word1", "word2", "word3"
 
 
 teststring <- "ich bin heute nicht zur Schule gegangen"
-# teststring <- "ich bin"
+#teststring <- "ich bin"
 testdf <- data.frame(text = teststring, stringsAsFactors = F)
 testdf %>% separate(text, c("word1", "word2", "word3", "word4"), sep=" ")
 # testdf %>% unnest_tokens(ngram,text, token="ngrams" , n=4)
@@ -36,7 +36,7 @@ testdf %>% separate(text, c("word1", "word2", "word3", "word4"), sep=" ")
 predictNextWord <- function(history) {
       
       histDF <- data.frame(text = history, stringsAsFactors = F)
-      histDF <- histDF %>% separate(text, c("word1", "word2", "word3"), sep=" ")
+      histDF <- histDF %>% separate(text, c("word1", "word2", "word3"), sep=" ", fill="left")
       
       matches <- FourGramsDF %>% inner_join(histDF, by=c("word1", "word2", "word3"))
       if (nrow(matches) == 0)
@@ -53,5 +53,5 @@ predictNextWord <- function(history) {
       matches %>% top_n(n=10, wt=n)
 }
 
-predictNextWord("bla bla back")
+predictNextWord("it was")
 
