@@ -1,6 +1,10 @@
-# setwd("U://My Documents/GitHub/DataScience_CapStone") # ROCHE
+home <- TRUE
 
-# setwd("C:/Users/Grund/Documents/GitHub/DataScience_CapStone") # HOME
+if (home == TRUE) {
+      setwd("C:/Users/Grund/Documents/GitHub/DataScience_CapStone") # HOME
+} else {
+      setwd("U://My Documents/GitHub/DataScience_CapStone") # ROCHE 
+}
 
 library(tidytext)
 library(dplyr)
@@ -28,6 +32,13 @@ filenames <- c("en_US.news.txt","en_US.twitter.txt","en_US.blogs.txt")
 # 2-grams
 TwoGrams <- full_df %>% unnest_tokens(TwoGram, text, token="ngrams" , n=2)
 TwoGrams <- TwoGrams %>% count(TwoGram) %>% filter(n > 1)
+
+# TwoGrams <- TwoGrams %>% separate(TwoGram, c("word1", "word2"), sep=" ")
+# TwoGrams <- TwoGrams %>%
+#       filter(!word1 %in% stop_words$word) %>%
+#       filter(!word2 %in% stop_words$word)
+# TwoGrams <- TwoGrams %>% unite(TwoGram, word1, word2, sep = " ")
+
 outputfile <- paste("./data/2_gram.rda", sep="")
 save(TwoGrams, file = outputfile)
 rm(TwoGrams)
