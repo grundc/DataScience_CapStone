@@ -12,14 +12,49 @@ load("./data/4_gram.rda") # object FourGrams
 load("./data/3_gram.rda") # object ThreeGrams
 load("./data/2_gram.rda") # object TwoGrams
 
+load("./data/4_gram.rda") # object FourGrams
+FourGrams <- FourGrams %>% separate(FourGram, c("word1", "word2", "word3", "word4"), sep=" ") %>%
+             filter(tolower(substr(word1, start=1,stop=1)) %in% letters) %>%
+             filter(tolower(substr(word2, start=1,stop=1)) %in% letters) %>%
+             filter(tolower(substr(word3, start=1,stop=1)) %in% letters) %>%
+             filter(tolower(substr(word4, start=1,stop=1)) %in% letters)
 
-FourGrams <- FourGrams %>% separate(FourGram, c("word1", "word2", "word3", "word4"), sep=" ")
-ThreeGrams <- ThreeGrams %>% separate(ThreeGram, c("word2", "word3", "word4"), sep=" ")
-TwoGrams <- TwoGrams %>% separate(TwoGram, c("word3", "word4"), sep=" ")
+load("./data/3_gram.rda") # object ThreeGrams
+ThreeGrams <- ThreeGrams %>% separate(ThreeGram, c("word2", "word3", "word4"), sep=" ")  %>%
+            filter(tolower(substr(word2, start=1,stop=1)) %in% letters) %>%
+            filter(tolower(substr(word3, start=1,stop=1)) %in% letters) %>%
+            filter(tolower(substr(word4, start=1,stop=1)) %in% letters)
 
-predictNextWord("on the road")
+load("./data/2_gram.rda") # object TwoGrams
+TwoGrams <- TwoGrams %>% separate(TwoGram, c("word3", "word4"), sep=" ")  %>%
+            filter(tolower(substr(word3, start=1,stop=1)) %in% letters) %>%
+            filter(tolower(substr(word4, start=1,stop=1)) %in% letters)
 
-predictNextWord <- function(history, wordVector) {
+# Q2
+predictNextWord("me about his",c("marital", "horticultural", "spiritual", "financial"))
+predictNextWord("me about his")
+# Q3
+predictNextWord("arctic monkeys this",c("month", "morning", "weekend", "decade"))
+# Q4
+predictNextWord("helps reduce your",c("stress", "hunger", "sleepiness", "happiness"))
+# Q5
+predictNextWord("to take a",c("look", "picture", "minute", "walk"))
+# Q6
+predictNextWord("to settle the",c("incident", "account", "case", "matter"))
+# Q7
+predictNextWord("groceries in each",c("toe", "finger", "hand", "arm"))
+# Q8
+predictNextWord("bottom to the",c("middle", "top", "center", "side"))
+# Q9
+predictNextWord("bruises from playing",c("daily", "inside", "weekly", "outside"))
+# Q10
+predictNextWord("of Adam Sandler's",c("stories", "pictures", "novels", "movies"))
+
+predictNextWord("me about his")
+
+
+
+predictNextWord <- function(history, wordVector = vector('character')) {
   
   histDF <- createInputHistory(history)
   
@@ -31,9 +66,8 @@ predictNextWord <- function(history, wordVector) {
   matchesThreeGrams <- ThreeGrams %>% inner_join(histDF, by=c("word2", "word3"))
   Nsum <- sum(matchesThreeGrams$n)
   matchesThreeGrams <- matchesThreeGrams %>% mutate(prob = n/Nsum * 0.4, ngram=3)
-  
-  
-  matchesTwoGrams <- TwoGrams %>% inner_join(histDF, by=c("word3")) 
+
+  matchesTwoGrams <- TwoGrams %>% inner_join(histDF, by=c("word3"))
   Nsum <- sum(matchesTwoGrams$n)
   matchesTwoGrams <- matchesTwoGrams %>% mutate(prob = n/Nsum * 0.4^2, ngram=2)
   
@@ -42,7 +76,13 @@ predictNextWord <- function(history, wordVector) {
   matches <- rbind(matches, matchesThreeGrams %>% select(word4,n,prob,ngram) %>% anti_join(matches, by=c("word4")))
   matches <- rbind(matches, matchesTwoGrams %>% select(word4,n,prob,ngram) %>% anti_join(matches, by=c("word4")))
   
-  matches %>% arrange(desc(prob))
+  if (length(wordVector) > 0) {
+    matches %>% filter(word4 %in% wordVector) %>% arrange(desc(prob))
+  }
+  else {
+    matches %>% arrange(desc(prob))
+  }
+  
 }
 
 
